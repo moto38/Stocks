@@ -12,6 +12,12 @@
 (setq stock-url my-stock-tracker--api-url)
 (setq stock "4661")
 
+(defun epoch2date (unix-time)
+  "Epoch time to human readble format."
+  (format-time-string "%Y-%m-%d %H:%M:%S" (seconds-to-time unix-time))
+  )
+
+
 (defun my-stock-tracker--request-synchronously (stock-url stock)
   "Get STOCK data with stock-url + stock synchronously, return a list of JSON each as alist."
   (let* (jsons response)
@@ -32,32 +38,141 @@
     ;;jsons))
     response))
 
-(message (my-stock-tracker--request-synchronously my-stock-tracker--api-url "4661"))
 
+(type-of
+(hash-table-keys
 
-(switch-to-buffer
-           (url-retrieve-synchronously
-            (format stock-url stock) t nil 5))
-
-	   
-
-
-(defun stock-tracker--request-synchronously (stock tag)
-  "Get STOCK data with TAG synchronously, return a list of JSON each as alist."
-  (let* (jsons response)
-    (ignore-errors
-      (with-current-buffer
-          (url-retrieve-synchronously
-           (format (stock-tracker--api-url tag) (url-hexify-string stock)) t nil 5)
-        (set-buffer-multibyte t)
-        (goto-char (point-min))
-        (when (string-match "200 OK" (buffer-string))
-          (re-search-forward (stock-tracker--result-prefix tag) nil 'move)
-          (setq response (buffer-substring-no-properties (point) (point-max)))
-	  (setq jsons (json-read-from-string (replace-regexp-in-string "[\\[\\]]" "" response)))
+ (gethash "regularMarketPrice"
+ (gethash "meta"
+	  (aref
+	   (gethash "result"
+		    (gethash "chart"
+			     (json-parse-string (my-stock-tracker--request-synchronously my-stock-tracker--api-url "4661"))
+			     )
+		    )
+	   0)
 	  )
-        (kill-current-buffer)))
-    jsons))
+ )
+
+ )
+)
+
+
+;; ("indicators" "timestamp" "meta")
+(setq json-main-data
+      (aref
+       (gethash "result"
+		(gethash "chart"
+			 (json-parse-string (my-stock-tracker--request-synchronously my-stock-tracker--api-url "4661"))
+			 )
+		)
+       0)
+      )
+
+(length
+ (gethash "open"
+  (aref (gethash "quote" (gethash "indicators" json-main-data)) 0)
+  )
+
+;; indicators => quote => ("open" "high" "volume" "close" "low")
+
+)
+
+(gethash "timestamp" json-main-data)
+
+
+(setq my-stock-tracker-list-dates
+      (lambda (h)
+	(dotimes (i (length h))
+	  (let ((element (aref h i)))
+	    (message "%d => %s" element (epoch2date element) )
+	    ))))
+
+(funcall my-stock-tracker-list-dates (gethash "timestamp" json-main-data))
+
+
+(epoch2date 1729209600)"2024-10-18 09:00:00"
+(epoch2date 1729231200)"2024-10-18 15:00:00"
+
+
+
+;; meta hash-key
+;;("validRanges"
+;; "range"
+;; "dataGranularity"
+;; "tradingPeriods"
+;; "currentTradingPeriod"
+;; "priceHint"
+;; "scale"
+;; "previousClose"        前日の終値(まあ、こっち)
+;; "chartPreviousClose"
+;; "shortName"
+;; "longName"
+;; "regularMarketVolume"
+;; "regularMarketDayLow"  通常時間取引中の最安値
+;; "regularMarketDayHigh" 通常時間取引中の最高値
+;; "fiftyTwoWeekLow"
+;; "fiftyTwoWeekHigh"
+;; "regularMarketPrice"   通常時間中の最新の株価
+;; "exchangeTimezoneName"
+;; "timezone"
+;; "gmtoffset"
+;; "hasPrePostMarketData"
+;; "regularMarketTime"    通常取引時間内の最後に取引が行われた時刻
+;; "firstTradeDate"
+;; "instrumentType"
+;; "fullExchangeName"
+;; "exchangeName"
+;; "symbol"
+;; "currency")
+
+
+ 
+;; meta
+;;#s(hash-table size 28 test equal rehash-size 1.5 rehash-threshold 0.8125 data
+;; ("currency" "JPY"
+;;  "symbol" "4661.T"
+;;  "exchangeName" "JPX"
+;;  "fullExchangeName" "Tokyo"
+;;  "instrumentType" "EQUITY"
+;;  "firstTradeDate" 978307200
+;;  "regularMarketTime" 1729232100
+;;  "hasPrePostMarketData" :false
+;;  "gmtoffset" 32400
+;;  "timezone" "JST"
+;;  "exchangeTimezoneName" "Asia/Tokyo"
+;;  "regularMarketPrice" 3547.0
+;;  "fiftyTwoWeekHigh" 3566.0
+;;  "fiftyTwoWeekLow" 3526.0
+;;  "regularMarketDayHigh" 3566.0
+;;  "regularMarketDayLow" 3526.0
+;;  "regularMarketVolume" 2240600
+;;  "longName" "Oriental Land Co., Ltd."
+;;  "shortName" "ORIENTAL LAND CO"
+;;  "chartPreviousClose" 3530.0
+;;  "previousClose" 3530.0
+;;  "scale" 3
+;;  "priceHint" 2
+;;  "currentTradingPeriod" #s(hash-table size 3 test equal rehash-size 1.5 rehash-threshold 0.8125 data
+;;    ("pre" #s(hash-table size 4 test equal rehash-size 1.5 rehash-threshold 0.8125 data
+;;      ("timezone" "JST" "start" 1729209600 "end" 1729209600 "gmtoffset" 32400))
+;;     "regular" #s(hash-table size 4 test equal rehash-size 1.5 rehash-threshold 0.8125 data
+;;      ("timezone" "JST" "start" 1729209600 "end" 1729231200 "gmtoffset" 32400))
+;;     "post" #s(hash-table size 4 test equal rehash-size 1.5 rehash-threshold 0.8125 data
+;;      ("timezone" "JST" "start" 1729231200 "end" 1729231200 "gmtoffset" 32400))))
+;;  "tradingPeriods" [[#s(hash-table size 4 test equal rehash-size 1.5 rehash-threshold 0.8125 data
+;;    ("timezone" "JST" "start" 1729209600 "end" 1729231200 "gmtoffset" 32400))]]
+;;  "dataGranularity" "1m"
+;;  "range" "1d"
+;;  "validRanges" ["1d" "5d" "1mo" "3mo" "6mo" "1y" "2y" "5y" "10y" "ytd" "max"]
+;; )
+;;)
+
+
+
+
+
+
 
 (defun stock-tracker--format-json (json tag)
   "Format stock information from JSON with TAG."
