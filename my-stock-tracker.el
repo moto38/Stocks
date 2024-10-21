@@ -101,7 +101,14 @@ json-main-data
 (epoch2date 1729231200)"2024-10-18 15:00:00"
 
 
-(map-elt my-stock-tracker-meta "currentTradingPeriod")
+(map-elt my-stock-tracker-meta "symbol")
+(map-elt my-stock-tracker-meta "shortName")
+(map-elt my-stock-tracker-meta "exchangeName")
+(map-elt my-stock-tracker-meta "previousClose")
+(map-elt my-stock-tracker-meta "regularMarketPrice")
+(map-elt my-stock-tracker-meta "regularMarketDayHigh")
+(map-elt my-stock-tracker-meta "regularMarketDayLow")
+(map-elt my-stock-tracker-meta "regularMarketVolume")
 
 ;; meta hash-table-key
 ;;("validRanges"
