@@ -78,7 +78,12 @@
 
 )
 
-(gethash "timestamp" json-main-data)
+(setq my-stock-tracker-meta (gethash "meta" json-main-data))
+(setq my-stock-tracker-timestamps (gethash "timestamp" json-main-data))
+(setq my-stock-tracker-quote   (aref (gethash "quote" (gethash "indicators" json-main-data)) 0))
+
+
+
 
 
 (setq my-stock-tracker-list-dates
@@ -90,13 +95,15 @@
 
 (funcall my-stock-tracker-list-dates (gethash "timestamp" json-main-data))
 
-
+json-main-data
+(map-elt json-main-data "meta")
 (epoch2date 1729209600)"2024-10-18 09:00:00"
 (epoch2date 1729231200)"2024-10-18 15:00:00"
 
 
+(map-elt my-stock-tracker-meta "currentTradingPeriod")
 
-;; meta hash-key
+;; meta hash-table-key
 ;;("validRanges"
 ;; "range"
 ;; "dataGranularity"
