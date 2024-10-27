@@ -17,7 +17,8 @@
   "Stock-Tracker result header.")
 
 (defconst stock-tracker--result-item-format
-  "|-\n| %s | %s | %s | %.2f %% | %.2f | %s | %s | %s | %s | %.2f |\n"
+  ;;"|-\n| %s | %s | %s | %.2f %% | %.2f | %s | %s | %s | %s | %.2f |\n"
+  "|-\n| %s | %10.10s | %s | %.2f %% | %.2f | %s | %s | %s | %s | %.2f |\n"
   "Stock-Tracker result item format.")
 
 (defun epoch2date (unix-time)
@@ -47,6 +48,109 @@
     response))
 
 
+(defun my-stock-tracker-get-json (stock-url stock)
+  ""
+  (aref
+   (gethash "result"
+	    (gethash "chart"
+		     (json-parse-string
+		      (my-stock-tracker--request-synchronously stock-url stock))
+		     )) 0))
+
+
+(defun my-stock-tracker-check ()
+  (let ((check (-
+	       (aref (gethash "close" my-stock-tracker-quote) (1- (length my-stock-tracker-timestamps)))
+	       (map-elt my-stock-tracker-meta "regularMarketPrice"))))
+    (cond ((> check 0) "up")
+	  ((< check 0) "down")
+	  (t "stay"))))
+
+
+
+(defun my-stock-tracker-calc-price-change-percent (meta)
+  "Change percent: (previous close - price)/price"
+  (*
+   (/
+    (- (map-elt meta "previousClose")
+       (map-elt meta "regularMarketPrice"))
+    (map-elt meta "regularMarketPrice"))
+   100.0))
+
+
+(defun my-stock-tracker-check (meta)
+  (let ((check (my-stock-tracker-calc-price-change-percent meta)))
+    (cond ((> check 0) "up")
+	  ((< check 0) "down")
+	  (t "stay"))))
+
+(defun my-stock-tracker-calc-updown (meta)
+  (- (map-elt meta "previousClose")
+     (map-elt meta "regularMarketPrice")))
+    
+
+
+;; ("indicators" "timestamp" "meta")
+;;(setq json-main-data
+;;      (aref
+;;       (gethash "result"
+;;		(gethash "chart"
+;;			 (json-parse-string (my-stock-tracker--request-synchronously my-stock-tracker--api-url "4661"))
+;;			 ))
+;;       0))
+
+(setq json-main-data
+      (my-stock-tracker-get-json my-stock-tracker--api-url "8411"))
+
+
+(setq my-stock-tracker-meta (gethash "meta" json-main-data))
+(setq my-stock-tracker-timestamps (gethash "timestamp" json-main-data))
+(setq my-stock-tracker-quote   (aref (gethash "quote" (gethash "indicators" json-main-data)) 0))
+
+
+
+
+
+
+(setq my-stock-tracker-symbol (map-elt my-stock-tracker-meta "symbol"))
+(setq my-stock-tracker-name   (map-elt my-stock-tracker-meta "shortName"))
+(map-elt my-stock-tracker-meta "exchangeName")
+(setq my-stock-tracker-price-pclose (map-elt my-stock-tracker-meta "previousClose"))
+(setq my-stock-tracker-price-open   (aref (gethash "open" my-stock-tracker-quote) 1))
+(setq my-stock-tracker-price (map-elt my-stock-tracker-meta "regularMarketPrice"))
+(setq my-stock-tracker-price-high (map-elt my-stock-tracker-meta "regularMarketDayHigh"))
+(setq my-stock-tracker-price-low (map-elt my-stock-tracker-meta "regularMarketDayLow"))
+(setq my-stock-tracker-volume (map-elt my-stock-tracker-meta "regularMarketVolume"))
+(epoch2date (map-elt my-stock-tracker-meta "regularMarketTime"))
+(epoch2date (aref my-stock-tracker-timestamps (1- (length my-stock-tracker-timestamps))))
+;;=> chartPreviousClose と一緒なので (setq my-stock-tracker-price-ppclose (aref (gethash "close" my-stock-tracker-quote) (1- (length my-stock-tracker-timestamps))))
+(setq my-stock-tracker-price-ppclose (map-elt my-stock-tracker-meta "chartPreviousClose"))
+(setq my-stock-tracker-price-change-percent  (my-stock-tracker-calc-price-change-percent my-stock-tracker-meta))
+;;(setq my-stock-tracker-updown (my-stock-tracker-check my-stock-tracker-meta))
+(setq my-stock-tracker-updown (my-stock-tracker-calc-updown my-stock-tracker-meta))
+
+
+(defun my-stock-tracker-display (symbol name price percent updown high low volume open pclose)
+  "Display"
+  (format stock-tracker--result-header)
+  (format stock-tracker--result-item-format
+	  symbol name price percent updown high low volume open pclose))
+
+(my-stock-tracker-display
+ my-stock-tracker-symbol
+ my-stock-tracker-name
+ my-stock-tracker-price
+ my-stock-tracker-price-change-percent
+ my-stock-tracker-updown
+ my-stock-tracker-price-high
+ my-stock-tracker-price-low
+ my-stock-tracker-volume
+ my-stock-tracker-price-open
+ my-stock-tracker-price-pclose)
+
+
+ 
+
 (type-of
 (hash-table-keys
 
@@ -66,16 +170,6 @@
 )
 
 
-;; ("indicators" "timestamp" "meta")
-(setq json-main-data
-      (aref
-       (gethash "result"
-		(gethash "chart"
-			 (json-parse-string (my-stock-tracker--request-synchronously my-stock-tracker--api-url "4661"))
-			 )
-		)
-       0)
-      )
 
 (length
  (gethash "open"
@@ -86,20 +180,11 @@
 
 )
 
-(setq my-stock-tracker-meta (gethash "meta" json-main-data))
-(setq my-stock-tracker-timestamps (gethash "timestamp" json-main-data))
-(setq my-stock-tracker-quote   (aref (gethash "quote" (gethash "indicators" json-main-data)) 0))
 
-
-(defun my-stock-tracker-check ()
-  (let ((check (-
-	       (aref (gethash "close" my-stock-tracker-quote) (1- (length my-stock-tracker-timestamps)))
-	       (map-elt my-stock-tracker-meta "regularMarketPrice"))))
-    (cond ((> check 0) "up")
-	  ((< check 0) "down")
-	  (t "stay"))))
-
-(my-stock-tracker-check)
+json-main-data
+(map-elt json-main-data "meta")
+(epoch2date 1729209600)  ;;"2024-10-18 09:00:00"
+(epoch2date 1729231200)  ;;"2024-10-18 15:00:00"
 
 
 (setq my-stock-tracker-list-dates
@@ -110,25 +195,6 @@
 	    ))))
 
 (funcall my-stock-tracker-list-dates (gethash "timestamp" json-main-data))
-
-json-main-data
-(map-elt json-main-data "meta")
-(epoch2date 1729209600)  ;;"2024-10-18 09:00:00"
-(epoch2date 1729231200)  ;;"2024-10-18 15:00:00"
-
-
-(setq my-stock-tracker-symbol (map-elt my-stock-tracker-meta "symbol"))
-(setq my-stock-tracker-name   (map-elt my-stock-tracker-meta "shortName"))
-(map-elt my-stock-tracker-meta "exchangeName")
-(setq my-stock-tracker-pclose (map-elt my-stock-tracker-meta "previousClose"))
-(setq my-stock-tracker-price (map-elt my-stock-tracker-meta "regularMarketPrice"))
-(setq my-stock-tracker-high (map-elt my-stock-tracker-meta "regularMarketDayHigh"))
-(setq my-stock-tracker-low (map-elt my-stock-tracker-meta "regularMarketDayLow"))
-(setq my-stock-tracker-volume (map-elt my-stock-tracker-meta "regularMarketVolume"))
-(epoch2date (map-elt my-stock-tracker-meta "regularMarketTime"))
-(epoch2date (aref my-stock-tracker-timestamps (1- (length my-stock-tracker-timestamps))))
-(aref (gethash "close" my-stock-tracker-quote) (1- (length my-stock-tracker-timestamps)))
-(my-stock-tracker-check)
 
 
 
@@ -141,7 +207,7 @@ json-main-data
 ;; "priceHint"
 ;; "scale"
 ;; "previousClose"        前日の終値(まあ、こっち)
-;; "chartPreviousClose"
+;; "chartPreviousClose"   前の時間の終値
 ;; "shortName"
 ;; "longName"
 ;; "regularMarketVolume"
