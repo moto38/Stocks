@@ -83,7 +83,15 @@
 (setq my-stock-tracker-quote   (aref (gethash "quote" (gethash "indicators" json-main-data)) 0))
 
 
+(defun my-stock-tracker-check ()
+  (let ((check (-
+	       (aref (gethash "close" my-stock-tracker-quote) (1- (length my-stock-tracker-timestamps)))
+	       (map-elt my-stock-tracker-meta "regularMarketPrice"))))
+    (cond ((> check 0) "up")
+	  ((< check 0) "down")
+	  (t "stay"))))
 
+(my-stock-tracker-check)
 
 
 (setq my-stock-tracker-list-dates
@@ -97,8 +105,8 @@
 
 json-main-data
 (map-elt json-main-data "meta")
-(epoch2date 1729209600)"2024-10-18 09:00:00"
-(epoch2date 1729231200)"2024-10-18 15:00:00"
+(epoch2date 1729209600)  ;;"2024-10-18 09:00:00"
+(epoch2date 1729231200)  ;;"2024-10-18 15:00:00"
 
 
 (map-elt my-stock-tracker-meta "symbol")
@@ -109,6 +117,12 @@ json-main-data
 (map-elt my-stock-tracker-meta "regularMarketDayHigh")
 (map-elt my-stock-tracker-meta "regularMarketDayLow")
 (map-elt my-stock-tracker-meta "regularMarketVolume")
+(epoch2date (map-elt my-stock-tracker-meta "regularMarketTime"))
+(epoch2date (aref my-stock-tracker-timestamps (1- (length my-stock-tracker-timestamps))))
+(aref (gethash "close" my-stock-tracker-quote) (1- (length my-stock-tracker-timestamps)))
+(my-stock-tracker-check)
+
+
 
 ;; meta hash-table-key
 ;;("validRanges"
@@ -182,6 +196,32 @@ json-main-data
 ;; )
 ;;)
 
+(defconst stock-tracker--result-header
+  "|-\n| symbol | name | price | percent | updown | high | low | volume | open | yestclose |\n"
+  "Stock-Tracker result header.")
+
+(defconst stock-tracker--result-item-format
+  "|-\n| %s | %s | %s | %.2f %% | %.2f | %s | %s | %s | %s | %.2f |\n"
+  "Stock-Tracker result item format.")
+
+(defconst stock-tracker--response-buffer "*api-response*"
+  "Buffer name for error report when fail to read server response.")
+
+
+(defconst stock-tracker--header-string
+  "* Stocks refreshed at: [ %current-time% ] auto-refreshing is: [ %refresh-state% ]"
+  "Stock-Tracker header string.")
+
+(defconst stock-tracker--note-string
+  (purecopy
+   "** Add     stock, use [ *a* ]
+** Delete  stock, use [ *d* ]
+** Start refresh, use [ *g* ]
+** Stop  refresh, use [ *s* ]
+** Stocks listed in SH, prefix with [ *0* ], e.g: 0600000
+** Stocks listed in SZ, prefix with [ *1* ], e.g: 1002024
+** Stocks listed in US,                    e.g: GOOG")
+  "Stock-Tracker note string.")
 
 
 
