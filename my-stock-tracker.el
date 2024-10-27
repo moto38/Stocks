@@ -12,6 +12,14 @@
 (setq stock-url my-stock-tracker--api-url)
 (setq stock "4661")
 
+(defconst stock-tracker--result-header
+  "|-\n| symbol | name | price | percent | updown | high | low | volume | open | yestclose |\n"
+  "Stock-Tracker result header.")
+
+(defconst stock-tracker--result-item-format
+  "|-\n| %s | %s | %s | %.2f %% | %.2f | %s | %s | %s | %s | %.2f |\n"
+  "Stock-Tracker result item format.")
+
 (defun epoch2date (unix-time)
   "Epoch time to human readble format."
   (format-time-string "%Y-%m-%d %H:%M:%S" (seconds-to-time unix-time))
@@ -109,14 +117,14 @@ json-main-data
 (epoch2date 1729231200)  ;;"2024-10-18 15:00:00"
 
 
-(map-elt my-stock-tracker-meta "symbol")
-(map-elt my-stock-tracker-meta "shortName")
+(setq my-stock-tracker-symbol (map-elt my-stock-tracker-meta "symbol"))
+(setq my-stock-tracker-name   (map-elt my-stock-tracker-meta "shortName"))
 (map-elt my-stock-tracker-meta "exchangeName")
-(map-elt my-stock-tracker-meta "previousClose")
-(map-elt my-stock-tracker-meta "regularMarketPrice")
-(map-elt my-stock-tracker-meta "regularMarketDayHigh")
-(map-elt my-stock-tracker-meta "regularMarketDayLow")
-(map-elt my-stock-tracker-meta "regularMarketVolume")
+(setq my-stock-tracker-pclose (map-elt my-stock-tracker-meta "previousClose"))
+(setq my-stock-tracker-price (map-elt my-stock-tracker-meta "regularMarketPrice"))
+(setq my-stock-tracker-high (map-elt my-stock-tracker-meta "regularMarketDayHigh"))
+(setq my-stock-tracker-low (map-elt my-stock-tracker-meta "regularMarketDayLow"))
+(setq my-stock-tracker-volume (map-elt my-stock-tracker-meta "regularMarketVolume"))
 (epoch2date (map-elt my-stock-tracker-meta "regularMarketTime"))
 (epoch2date (aref my-stock-tracker-timestamps (1- (length my-stock-tracker-timestamps))))
 (aref (gethash "close" my-stock-tracker-quote) (1- (length my-stock-tracker-timestamps)))
@@ -196,13 +204,6 @@ json-main-data
 ;; )
 ;;)
 
-(defconst stock-tracker--result-header
-  "|-\n| symbol | name | price | percent | updown | high | low | volume | open | yestclose |\n"
-  "Stock-Tracker result header.")
-
-(defconst stock-tracker--result-item-format
-  "|-\n| %s | %s | %s | %.2f %% | %.2f | %s | %s | %s | %s | %.2f |\n"
-  "Stock-Tracker result item format.")
 
 (defconst stock-tracker--response-buffer "*api-response*"
   "Buffer name for error report when fail to read server response.")
