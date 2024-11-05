@@ -1,19 +1,22 @@
-(defvar my-stock-tracker--api-url "https://query2.finance.yahoo.com/v8/finance/chart/%s.T"
+(defvar my-stock-tracker--api-url "https://query2.finance.yahoo.com/v8/finance/chart/%s"
   "API to get stock for S from YahooFinanceAPI." )
 
 
 (setq my-stock-tracker--list-of-stocks
       (list
-       "4661"   ;; OLTC
-       "8411"   ;; MFG
+       "4661.T"   ;; OLTC
+       "8411.T"   ;; MFG
+       ;;"NVDA"     ;; NVIDIA
        )
       )
 
 (setq stock-url my-stock-tracker--api-url)
-(setq stock "4661")
+;;(setq stock "4661")
+
+(defconst my-stock-tracker-buffer-name "*my-stock-tracker*")
 
 (defconst stock-tracker--result-header
-  "|-\n| symbol | name | price | percent | updown | high | low | volume | open | yestclose |\n"
+  "|-\n| symbol | name | price | % | updown | high | low | volume | open | pclose |\n"
   "Stock-Tracker result header.")
 
 (defconst stock-tracker--result-item-format
@@ -85,9 +88,102 @@
 	  (t "stay"))))
 
 (defun my-stock-tracker-calc-updown (meta)
-  (- (map-elt meta "previousClose")
+  (- (map-elt meta "chartPreviousClose")
      (map-elt meta "regularMarketPrice")))
     
+
+(defun my-stock-tracker-display (symbol name price percent updown high low volume open pclose)
+  "Display"
+
+  (insert (format stock-tracker--result-item-format
+		  symbol name price percent updown high low volume open pclose))
+  (org-table-map-tables 'org-table-align t)
+  )
+
+
+(defun my-stock-tracker-show-stock-info (api-url stock-list) ""
+
+       (let ((oldbuf (current-buffer))
+	     )
+	 (save-current-buffer
+	   (set-buffer (get-buffer-create my-stock-tracker-buffer-name))
+	   (org-mode)
+	   (let ((start (point-min))
+		 (end (point-max)))
+	     (delete-region start end))
+	   (insert stock-tracker--result-header)
+	       
+	   (dotimes (i (length stock-list))
+	     (let ((sym (nth i stock-list))
+		   json-main-data
+	           my-stock-tracker-symbol
+		   my-stock-tracker-name
+		   my-stock-tracker-price
+		   my-stock-tracker-price-change-percent
+		   my-stock-tracker-updown
+		   my-stock-tracker-price-high
+		   my-stock-tracker-price-low
+		   my-stock-tracker-volume
+		   my-stock-tracker-price-open
+		   my-stock-tracker-price-pclose
+		   my-stock-tracker-meta
+		   my-stock-tracker-timestamps
+		   my-stock-tracker-quote
+		   )
+	       (setq json-main-data
+		     (my-stock-tracker-get-json my-stock-tracker--api-url sym))
+	       (setq my-stock-tracker-meta
+		     (gethash "meta" json-main-data))
+	       (setq my-stock-tracker-timestamps
+		     (gethash "timestamp" json-main-data))
+	       (setq my-stock-tracker-quote
+		     (aref
+		      (gethash "quote"
+			       (gethash "indicators" json-main-data))
+		      0))
+	       (setq my-stock-tracker-symbol
+		     (map-elt my-stock-tracker-meta "symbol"))
+	       (setq my-stock-tracker-name
+		     (map-elt my-stock-tracker-meta "shortName"))
+	       (setq my-stock-tracker-price-pclose
+		     (map-elt my-stock-tracker-meta "previousClose"))
+	       (setq my-stock-tracker-price-open
+		     (aref (gethash "open" my-stock-tracker-quote) 1))
+	       (setq my-stock-tracker-price
+		     (map-elt my-stock-tracker-meta "regularMarketPrice"))
+	       (setq my-stock-tracker-price-high
+		     (map-elt my-stock-tracker-meta "regularMarketDayHigh"))
+	       (setq my-stock-tracker-price-low
+		     (map-elt my-stock-tracker-meta "regularMarketDayLow"))
+	       (setq my-stock-tracker-volume
+		     (map-elt my-stock-tracker-meta "regularMarketVolume"))
+	       (setq my-stock-tracker-price-ppclose
+		     (map-elt my-stock-tracker-meta "chartPreviousClose"))
+	       (setq my-stock-tracker-price-change-percent
+		     (my-stock-tracker-calc-price-change-percent my-stock-tracker-meta))
+	       (setq my-stock-tracker-updown
+		     (my-stock-tracker-calc-updown my-stock-tracker-meta))
+
+	       
+	       (my-stock-tracker-display
+		my-stock-tracker-symbol
+		my-stock-tracker-name
+		my-stock-tracker-price
+		my-stock-tracker-price-change-percent
+		my-stock-tracker-updown
+		my-stock-tracker-price-high
+		my-stock-tracker-price-low
+		my-stock-tracker-volume
+		my-stock-tracker-price-open
+		my-stock-tracker-price-pclose)
+	       ;;(message "%s" sym)
+	       )))
+	 ))
+
+
+(my-stock-tracker-show-stock-info
+ my-stock-tracker--api-url
+ my-stock-tracker--list-of-stocks)
 
 
 ;; ("indicators" "timestamp" "meta")
@@ -99,6 +195,7 @@
 ;;			 ))
 ;;       0))
 
+(format my-stock-tracker--api-url "NVDA")
 (setq json-main-data
       (my-stock-tracker-get-json my-stock-tracker--api-url "8411"))
 
@@ -114,6 +211,7 @@
 
 (setq my-stock-tracker-symbol (map-elt my-stock-tracker-meta "symbol"))
 (setq my-stock-tracker-name   (map-elt my-stock-tracker-meta "shortName"))
+(map-elt my-stock-tracker-meta "longName")
 (map-elt my-stock-tracker-meta "exchangeName")
 (setq my-stock-tracker-price-pclose (map-elt my-stock-tracker-meta "previousClose"))
 (setq my-stock-tracker-price-open   (aref (gethash "open" my-stock-tracker-quote) 1))
@@ -130,11 +228,6 @@
 (setq my-stock-tracker-updown (my-stock-tracker-calc-updown my-stock-tracker-meta))
 
 
-(defun my-stock-tracker-display (symbol name price percent updown high low volume open pclose)
-  "Display"
-  (format stock-tracker--result-header)
-  (format stock-tracker--result-item-format
-	  symbol name price percent updown high low volume open pclose))
 
 (my-stock-tracker-display
  my-stock-tracker-symbol
@@ -149,7 +242,7 @@
  my-stock-tracker-price-pclose)
 
 
- 
+(org-table-map-tables 'org-table-align t) 
 
 (type-of
 (hash-table-keys
@@ -185,6 +278,10 @@ json-main-data
 (map-elt json-main-data "meta")
 (epoch2date 1729209600)  ;;"2024-10-18 09:00:00"
 (epoch2date 1729231200)  ;;"2024-10-18 15:00:00"
+
+(get-buffer-create my-stock-tracker-buffer-name)
+
+(length my-stock-tracker--list-of-stocks)
 
 
 (setq my-stock-tracker-list-dates
