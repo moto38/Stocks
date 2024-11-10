@@ -52,13 +52,26 @@
 
 
 (defun my-stock-tracker-get-json (stock-url stock)
-  ""
+  "GET JSON"
   (aref
    (gethash "result"
 	    (gethash "chart"
 		     (json-parse-string
 		      (my-stock-tracker--request-synchronously stock-url stock))
 		     )) 0))
+
+(defun my-stock-tracker-get-all-json (stock-url stock-list)
+  "GET JSON ALL SYMBOLS"
+  (let ((jsons nil))
+    (dotimes (i (length stock-list))
+      (let ((sym (nth i stock-list))
+	    )
+	(append jsons (my-stock-tracker-get-json my-stock-tracker--api-url sym))
+	)
+      )
+    jsons
+    )
+  )
 
 
 (defun my-stock-tracker-check ()
@@ -195,103 +208,103 @@
 ;;			 ))
 ;;       0))
 
-(format my-stock-tracker--api-url "NVDA")
-(setq json-main-data
-      (my-stock-tracker-get-json my-stock-tracker--api-url "8411"))
+;; (format my-stock-tracker--api-url "NVDA")
+;; (setq json-main-data
+;;       (my-stock-tracker-get-json my-stock-tracker--api-url "8411"))
 
 
-(setq my-stock-tracker-meta (gethash "meta" json-main-data))
-(setq my-stock-tracker-timestamps (gethash "timestamp" json-main-data))
-(setq my-stock-tracker-quote   (aref (gethash "quote" (gethash "indicators" json-main-data)) 0))
-
-
-
+;; (setq my-stock-tracker-meta (gethash "meta" json-main-data))
+;; (setq my-stock-tracker-timestamps (gethash "timestamp" json-main-data))
+;; (setq my-stock-tracker-quote   (aref (gethash "quote" (gethash "indicators" json-main-data)) 0))
 
 
 
-(setq my-stock-tracker-symbol (map-elt my-stock-tracker-meta "symbol"))
-(setq my-stock-tracker-name   (map-elt my-stock-tracker-meta "shortName"))
-(map-elt my-stock-tracker-meta "longName")
-(map-elt my-stock-tracker-meta "exchangeName")
-(setq my-stock-tracker-price-pclose (map-elt my-stock-tracker-meta "previousClose"))
-(setq my-stock-tracker-price-open   (aref (gethash "open" my-stock-tracker-quote) 1))
-(setq my-stock-tracker-price (map-elt my-stock-tracker-meta "regularMarketPrice"))
-(setq my-stock-tracker-price-high (map-elt my-stock-tracker-meta "regularMarketDayHigh"))
-(setq my-stock-tracker-price-low (map-elt my-stock-tracker-meta "regularMarketDayLow"))
-(setq my-stock-tracker-volume (map-elt my-stock-tracker-meta "regularMarketVolume"))
-(epoch2date (map-elt my-stock-tracker-meta "regularMarketTime"))
-(epoch2date (aref my-stock-tracker-timestamps (1- (length my-stock-tracker-timestamps))))
-;;=> chartPreviousClose と一緒なので (setq my-stock-tracker-price-ppclose (aref (gethash "close" my-stock-tracker-quote) (1- (length my-stock-tracker-timestamps))))
-(setq my-stock-tracker-price-ppclose (map-elt my-stock-tracker-meta "chartPreviousClose"))
-(setq my-stock-tracker-price-change-percent  (my-stock-tracker-calc-price-change-percent my-stock-tracker-meta))
-;;(setq my-stock-tracker-updown (my-stock-tracker-check my-stock-tracker-meta))
-(setq my-stock-tracker-updown (my-stock-tracker-calc-updown my-stock-tracker-meta))
 
 
 
-(my-stock-tracker-display
- my-stock-tracker-symbol
- my-stock-tracker-name
- my-stock-tracker-price
- my-stock-tracker-price-change-percent
- my-stock-tracker-updown
- my-stock-tracker-price-high
- my-stock-tracker-price-low
- my-stock-tracker-volume
- my-stock-tracker-price-open
- my-stock-tracker-price-pclose)
-
-
-(org-table-map-tables 'org-table-align t) 
-
-(type-of
-(hash-table-keys
-
- (gethash "regularMarketPrice"
- (gethash "meta"
-	  (aref
-	   (gethash "result"
-		    (gethash "chart"
-			     (json-parse-string (my-stock-tracker--request-synchronously my-stock-tracker--api-url "4661"))
-			     )
-		    )
-	   0)
-	  )
- )
-
- )
-)
+;; (setq my-stock-tracker-symbol (map-elt my-stock-tracker-meta "symbol"))
+;; (setq my-stock-tracker-name   (map-elt my-stock-tracker-meta "shortName"))
+;; (map-elt my-stock-tracker-meta "longName")
+;; (map-elt my-stock-tracker-meta "exchangeName")
+;; (setq my-stock-tracker-price-pclose (map-elt my-stock-tracker-meta "previousClose"))
+;; (setq my-stock-tracker-price-open   (aref (gethash "open" my-stock-tracker-quote) 1))
+;; (setq my-stock-tracker-price (map-elt my-stock-tracker-meta "regularMarketPrice"))
+;; (setq my-stock-tracker-price-high (map-elt my-stock-tracker-meta "regularMarketDayHigh"))
+;; (setq my-stock-tracker-price-low (map-elt my-stock-tracker-meta "regularMarketDayLow"))
+;; (setq my-stock-tracker-volume (map-elt my-stock-tracker-meta "regularMarketVolume"))
+;; (epoch2date (map-elt my-stock-tracker-meta "regularMarketTime"))
+;; (epoch2date (aref my-stock-tracker-timestamps (1- (length my-stock-tracker-timestamps))))
+;; ;;=> chartPreviousClose と一緒なので (setq my-stock-tracker-price-ppclose (aref (gethash "close" my-stock-tracker-quote) (1- (length my-stock-tracker-timestamps))))
+;; (setq my-stock-tracker-price-ppclose (map-elt my-stock-tracker-meta "chartPreviousClose"))
+;; (setq my-stock-tracker-price-change-percent  (my-stock-tracker-calc-price-change-percent my-stock-tracker-meta))
+;; ;;(setq my-stock-tracker-updown (my-stock-tracker-check my-stock-tracker-meta))
+;; (setq my-stock-tracker-updown (my-stock-tracker-calc-updown my-stock-tracker-meta))
 
 
 
-(length
- (gethash "open"
-  (aref (gethash "quote" (gethash "indicators" json-main-data)) 0)
-  )
-
-;; indicators => quote => ("open" "high" "volume" "close" "low")
-
-)
-
-
-json-main-data
-(map-elt json-main-data "meta")
-(epoch2date 1729209600)  ;;"2024-10-18 09:00:00"
-(epoch2date 1729231200)  ;;"2024-10-18 15:00:00"
-
-(get-buffer-create my-stock-tracker-buffer-name)
-
-(length my-stock-tracker--list-of-stocks)
+;; (my-stock-tracker-display
+;;  my-stock-tracker-symbol
+;;  my-stock-tracker-name
+;;  my-stock-tracker-price
+;;  my-stock-tracker-price-change-percent
+;;  my-stock-tracker-updown
+;;  my-stock-tracker-price-high
+;;  my-stock-tracker-price-low
+;;  my-stock-tracker-volume
+;;  my-stock-tracker-price-open
+;;  my-stock-tracker-price-pclose)
 
 
-(setq my-stock-tracker-list-dates
-      (lambda (h)
-	(dotimes (i (length h))
-	  (let ((element (aref h i)))
-	    (message "%d => %s" element (epoch2date element) )
-	    ))))
+;; (org-table-map-tables 'org-table-align t) 
 
-(funcall my-stock-tracker-list-dates (gethash "timestamp" json-main-data))
+;; (type-of
+;; (hash-table-keys
+
+;;  (gethash "regularMarketPrice"
+;;  (gethash "meta"
+;; 	  (aref
+;; 	   (gethash "result"
+;; 		    (gethash "chart"
+;; 			     (json-parse-string (my-stock-tracker--request-synchronously my-stock-tracker--api-url "4661"))
+;; 			     )
+;; 		    )
+;; 	   0)
+;; 	  )
+;;  )
+
+;;  )
+;; )
+
+
+
+;; (length
+;;  (gethash "open"
+;;   (aref (gethash "quote" (gethash "indicators" json-main-data)) 0)
+;;   )
+
+;; ;; indicators => quote => ("open" "high" "volume" "close" "low")
+
+;; )
+
+
+;; json-main-data
+;; (map-elt json-main-data "meta")
+;; (epoch2date 1729209600)  ;;"2024-10-18 09:00:00"
+;; (epoch2date 1729231200)  ;;"2024-10-18 15:00:00"
+
+;; (get-buffer-create my-stock-tracker-buffer-name)
+
+;; (length my-stock-tracker--list-of-stocks)
+
+
+;; (setq my-stock-tracker-list-dates
+;;       (lambda (h)
+;; 	(dotimes (i (length h))
+;; 	  (let ((element (aref h i)))
+;; 	    (message "%d => %s" element (epoch2date element) )
+;; 	    ))))
+
+;; (funcall my-stock-tracker-list-dates (gethash "timestamp" json-main-data))
 
 
 
@@ -368,103 +381,103 @@ json-main-data
 ;;)
 
 
-(defconst stock-tracker--response-buffer "*api-response*"
-  "Buffer name for error report when fail to read server response.")
+;; (defconst stock-tracker--response-buffer "*api-response*"
+;;   "Buffer name for error report when fail to read server response.")
 
 
-(defconst stock-tracker--header-string
-  "* Stocks refreshed at: [ %current-time% ] auto-refreshing is: [ %refresh-state% ]"
-  "Stock-Tracker header string.")
+;; (defconst stock-tracker--header-string
+;;   "* Stocks refreshed at: [ %current-time% ] auto-refreshing is: [ %refresh-state% ]"
+;;   "Stock-Tracker header string.")
 
-(defconst stock-tracker--note-string
-  (purecopy
-   "** Add     stock, use [ *a* ]
-** Delete  stock, use [ *d* ]
-** Start refresh, use [ *g* ]
-** Stop  refresh, use [ *s* ]
-** Stocks listed in SH, prefix with [ *0* ], e.g: 0600000
-** Stocks listed in SZ, prefix with [ *1* ], e.g: 1002024
-** Stocks listed in US,                    e.g: GOOG")
-  "Stock-Tracker note string.")
-
-
-
+;; (defconst stock-tracker--note-string
+;;   (purecopy
+;;    "** Add     stock, use [ *a* ]
+;; ** Delete  stock, use [ *d* ]
+;; ** Start refresh, use [ *g* ]
+;; ** Stop  refresh, use [ *s* ]
+;; ** Stocks listed in SH, prefix with [ *0* ], e.g: 0600000
+;; ** Stocks listed in SZ, prefix with [ *1* ], e.g: 1002024
+;; ** Stocks listed in US,                    e.g: GOOG")
+;;   "Stock-Tracker note string.")
 
 
 
-(defun stock-tracker--format-json (json tag)
-  "Format stock information from JSON with TAG."
-  (let ((result-filds (stock-tracker--result-fields tag))
-        symbol name price percent (updown 0) color
-        high low volume open yestclose code)
 
-    (setq
-      code      (assoc-default (map-elt result-filds 'code)      json)
-      symbol    (assoc-default (map-elt result-filds 'symbol)    json)
-      name      (assoc-default (map-elt result-filds 'name)      json) ; chinese-word failed to align
-      price     (assoc-default (map-elt result-filds 'price)     json)
-      percent   (assoc-default (map-elt result-filds 'percent)   json)
-      updown    (assoc-default (map-elt result-filds 'updown)    json)
-      open      (assoc-default (map-elt result-filds 'open)      json)
-      yestclose (assoc-default (map-elt result-filds 'yestclose) json)
-      high      (assoc-default (map-elt result-filds 'high)      json)
-      low       (assoc-default (map-elt result-filds 'low)       json)
-      volume    (assoc-default (map-elt result-filds 'volume)    json))
 
-    ;; sanity check
-    (unless (and symbol name price percent updown open yestclose high low volume)
-      (stock-tracker--log "Invalid data received !!!")
-      (throw 'break 0))
 
-    ;; formating
-    (and (stringp percent)   (setq percent (string-to-number percent)))
-    (and (stringp volume)    (setq volume (string-to-number volume)))
-    (and (stringp yestclose) (setq yestclose (string-to-number yestclose)))
-    (and (stringp updown)    (setq updown (string-to-number updown)))
+;; (defun stock-tracker--format-json (json tag)
+;;   "Format stock information from JSON with TAG."
+;;   (let ((result-filds (stock-tracker--result-fields tag))
+;;         symbol name price percent (updown 0) color
+;;         high low volume open yestclose code)
 
-    ;; color setting
-    (if stock-tracker-up-red-down-green
-        (if (> updown 0) (setq color "red") (setq color "green"))
-      (if (> updown 0) (setq color "green") (setq color "red")))
+;;     (setq
+;;       code      (assoc-default (map-elt result-filds 'code)      json)
+;;       symbol    (assoc-default (map-elt result-filds 'symbol)    json)
+;;       name      (assoc-default (map-elt result-filds 'name)      json) ; chinese-word failed to align
+;;       price     (assoc-default (map-elt result-filds 'price)     json)
+;;       percent   (assoc-default (map-elt result-filds 'percent)   json)
+;;       updown    (assoc-default (map-elt result-filds 'updown)    json)
+;;       open      (assoc-default (map-elt result-filds 'open)      json)
+;;       yestclose (assoc-default (map-elt result-filds 'yestclose) json)
+;;       high      (assoc-default (map-elt result-filds 'high)      json)
+;;       low       (assoc-default (map-elt result-filds 'low)       json)
+;;       volume    (assoc-default (map-elt result-filds 'volume)    json))
 
-    ;; some extra handling
-    (and (cl-typep tag 'stock-tracker--chn-symbol) (setq percent (* 100 percent)))
+;;     ;; sanity check
+;;     (unless (and symbol name price percent updown open yestclose high low volume)
+;;       (stock-tracker--log "Invalid data received !!!")
+;;       (throw 'break 0))
 
-    ;; construct data for display
-    (and symbol
-         (propertize
-          (format stock-tracker--result-item-format symbol
-                  name price percent updown high low
-                  (stock-tracker--add-number-grouping volume ",")
-                  open yestclose)
-          'stock-code  code
-          'stock-color color))))
+;;     ;; formating
+;;     (and (stringp percent)   (setq percent (string-to-number percent)))
+;;     (and (stringp volume)    (setq volume (string-to-number volume)))
+;;     (and (stringp yestclose) (setq yestclose (string-to-number yestclose)))
+;;     (and (stringp updown)    (setq updown (string-to-number updown)))
 
-(defun stock-tracker--format-response (response tag &optional asynchronously)
-  "Format stock information from RESPONSE with TAG, with optional ASYNCHRONOUSLY."
-  (let ((jsons response)
-        (result "") result-list)
-    (catch 'break
-      ;; handle difference in async handling
-      (and asynchronously
-           (cl-typep tag 'stock-tracker--chn-symbol)
-           (setq jsons (car jsons)))
+;;     ;; color setting
+;;     (if stock-tracker-up-red-down-green
+;;         (if (> updown 0) (setq color "red") (setq color "green"))
+;;       (if (> updown 0) (setq color "green") (setq color "red")))
 
-      (dolist (json jsons)
-        (if (cl-typep tag 'stock-tracker--chn-symbol)
-            (setq json (cdr json))
-          ;; for us-stock, there's only one stock data here
-          (setq json jsons))
+;;     ;; some extra handling
+;;     (and (cl-typep tag 'stock-tracker--chn-symbol) (setq percent (* 100 percent)))
 
-        (when-let ((info (stock-tracker--format-json json tag)))
-          (push info result-list))
+;;     ;; construct data for display
+;;     (and symbol
+;;          (propertize
+;;           (format stock-tracker--result-item-format symbol
+;;                   name price percent updown high low
+;;                   (stock-tracker--add-number-grouping volume ",")
+;;                   open yestclose)
+;;           'stock-code  code
+;;           'stock-color color))))
 
-        ;; for us-stock, there's only one stock data here
-        (unless (cl-typep tag 'stock-tracker--chn-symbol)
-          (throw 'break t))))
-    (and result-list
-         (setq result (stock-tracker--list-to-string (reverse result-list) "")))
-    result))
+;; (defun stock-tracker--format-response (response tag &optional asynchronously)
+;;   "Format stock information from RESPONSE with TAG, with optional ASYNCHRONOUSLY."
+;;   (let ((jsons response)
+;;         (result "") result-list)
+;;     (catch 'break
+;;       ;; handle difference in async handling
+;;       (and asynchronously
+;;            (cl-typep tag 'stock-tracker--chn-symbol)
+;;            (setq jsons (car jsons)))
 
-(format "aa%s.T" "4461")
+;;       (dolist (json jsons)
+;;         (if (cl-typep tag 'stock-tracker--chn-symbol)
+;;             (setq json (cdr json))
+;;           ;; for us-stock, there's only one stock data here
+;;           (setq json jsons))
+
+;;         (when-let ((info (stock-tracker--format-json json tag)))
+;;           (push info result-list))
+
+;;         ;; for us-stock, there's only one stock data here
+;;         (unless (cl-typep tag 'stock-tracker--chn-symbol)
+;;           (throw 'break t))))
+;;     (and result-list
+;;          (setq result (stock-tracker--list-to-string (reverse result-list) "")))
+;;     result))
+
+;; (format "aa%s.T" "4461")
 
