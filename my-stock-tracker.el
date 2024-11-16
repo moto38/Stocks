@@ -107,14 +107,6 @@
     ))
 
 
-
-
-
-
-		   
-
-
-
 (defun my-stock-tracker-check ()
   (let ((check (-
 	       (aref (gethash "close" my-stock-tracker-quote) (1- (length my-stock-tracker-timestamps)))
@@ -202,14 +194,15 @@
      (map-elt my-stock-tracker-meta "regularMarketVolume")
      
      my-stock-tracker-price-ppclose
-     (map-elt my-stock-tracker-meta "chartPreviousClose")
-     )
+     ;; (map-elt my-stock-tracker-meta "chartPreviousClose")
+     (aref (gethash "close" my-stock-tracker-quote) (1- (length (gethash "close" my-stock-tracker-quote))))
     
      my-stock-tracker-price-change-percent
      (my-stock-tracker-calc-price-change-percent my-stock-tracker-meta)
      
      my-stock-tracker-updown
      (my-stock-tracker-calc-updown my-stock-tracker-meta)
+     )
 
      (list
       my-stock-tracker-name
@@ -228,7 +221,7 @@
 
 ;;(my-stock-tracker-get-display-info json-data)
 
-(defun my-stock-tracker-show-stock-info2 (api-url stock-list)
+(defun my-stock-tracker-show-stock-info (api-url stock-list)
   "show info"
   (let ((oldbuf (current-buffer))
 	jsons)
@@ -245,12 +238,12 @@
 	     api-url
 	     (reverse stock-list)))
 
-      (my-stock-tracker-display3 jsons)
+      (my-stock-tracker-display jsons)
       (org-table-map-tables 'org-table-align t)
       )))
 
 
-(defun my-stock-tracker-display3 (json-list)
+(defun my-stock-tracker-display (json-list)
   "display vertically"
   (let* ((json-data (car json-list))
 	 v
@@ -328,7 +321,7 @@
 	(insert (format "|%d" my-stock-tracker-volume))
 	(next-line)
 
-	(my-stock-tracker-display3 (cdr json-list))
+	(my-stock-tracker-display (cdr json-list))
        )
       )
     )
@@ -336,11 +329,11 @@
 
 
 
-(my-stock-tracker-get-indicator json-data "close")
-(my-stock-tracker-get-timestamps json-data)
 
 
-(my-stock-tracker-show-stock-info2
+
+
+(my-stock-tracker-show-stock-info
  my-stock-tracker--api-url
  my-stock-tracker--list-of-stocks)
 
@@ -353,6 +346,29 @@
  	    ))))
 
 ;;(funcall my-stock-tracker-list-dates (gethash "timestamp" json-main-data))
+
+
+
+;; DEBUG
+(setq json-list (my-stock-tracker-get-all-jsons my-stock-tracker--api-url my-stock-tracker--list-of-stocks))
+(setq json-data (car json-list))
+
+(my-stock-tracker-get-indicator json-data "close")
+(my-stock-tracker-get-timestamps json-data)
+
+
+(setq jsontime (my-stock-tracker-get-timestamps json-data))
+(setq indopen  (my-stock-tracker-get-indicator  json-data "open"))
+(setq indclose (my-stock-tracker-get-indicator  json-data "close"))
+(setq indhigh  (my-stock-tracker-get-indicator  json-data "high"))
+(setq indlow   (my-stock-tracker-get-indicator  json-data "low"))
+
+(dotimes (i (length jsontime))
+  (let ((v (format "%s,%s,%s,%s,%s\n" (elt jsontime i) (elt indopen i) (elt indhigh i) (elt indclose i) (elt indclose i))))
+    (message v)
+    )
+  )
+
 
 
 ;; (defun my-stock-tracker-display (symbol name price percent updown high low volume open pclose)
