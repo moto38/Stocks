@@ -6,7 +6,7 @@
       (list
        "4661.T"   ;; OLTC
        "8411.T"   ;; MFG
-       ;;"NVDA"     ;; NVIDIA
+       "NVDA"     ;; NVIDIA
        )
       )
 
@@ -31,7 +31,12 @@
 
 (defun epoch2date (unix-time)
   "Epoch time to human readble format."
-  (format-time-string "%Y-%m-%d %H:%M:%S" (seconds-to-time unix-time))
+  (format-time-string "%Y-%m-%d-%H-%M-%S" (seconds-to-time unix-time))
+  )
+
+(defun epoch2time (unix-time)
+  "Epoch time to human readble format (only time)."
+  (format-time-string "%H:%M:%S" (seconds-to-time unix-time))
   )
 
 
@@ -100,7 +105,7 @@
 	)
     (dotimes (i (length sv) mapv)
       (let ((vv (elt sv i)))
-	(setq mapv (cons (epoch2date vv) mapv))
+	(setq mapv (cons (epoch2time vv) mapv))
 	)
       )
     (reverse mapv)
@@ -134,7 +139,7 @@
 	  (t "stay"))))
 
 (defun my-stock-tracker-calc-updown (meta)
-  (- (map-elt meta "chartPreviousClose")
+  (- (map-elt meta "previousClose")
      (map-elt meta "regularMarketPrice")))
     
 ;;(setq json-data (car (my-stock-tracker-get-all-jsons my-stock-tracker--api-url my-stock-tracker--list-of-stocks)))
@@ -142,7 +147,7 @@
 (defun my-stock-tracker-get-display-info (json-data)
   "get display info from json"
   (let* (
-	 my-stoxk-tracker-symbol
+	 my-stock-tracker-symbol
 	 my-stock-tracker-name
          my-stock-tracker-price
 	 my-stock-tracker-price-change-percent
@@ -328,15 +333,70 @@
   )
 
 
+(defun my-stock-tracker-output-gnuplot-data (json-data outfile)
+  "output gnuplot data"
+  (let (
+	(oldbuf (current-buffer))
+	my-stock-tracker-symbol
+	my-stock-tracker-meta
+	currrenttime
+	)
+    (setq my-stock-tracker-meta
+	  (gethash "meta" json-data))
+    (setq my-stock-tracker-symbol
+	  (map-elt my-stock-tracker-meta "symbol"))
+    (setq currenttime
+	  (epoch2date (current-time)))
+    (setq outfile (concat outfile "_" my-stock-tracker-symbol "_" currenttime))
+    (save-current-buffer
+      (set-buffer (get-buffer-create outfile))
+      ;;(set-buffer (create-file-buffer outfile))
+      (insert (my-stock-tracker-make-gnuplot-data json-data))
+      (write-file outfile)
+      )
+    )
+  )
+
+(defun my-stock-tracker-make-gnuplot-data (json-data)
+  "make gnuplot data"
+  (let ((jsontime (my-stock-tracker-get-timestamps json-data))
+	(indopen  (my-stock-tracker-get-indicator  json-data "open"))
+	(indclose (my-stock-tracker-get-indicator  json-data "close"))
+	(indhigh  (my-stock-tracker-get-indicator  json-data "high"))
+	(indlow   (my-stock-tracker-get-indicator  json-data "low"))
+	(str      "")
+	v
+	)
+    (dotimes (i (length jsontime) str)
+      (let ((v (format "%s %s %s %s %s\n" (elt jsontime i) (elt indopen i) (elt indhigh i) (elt indclose i) (elt indclose i))))
+	(setq str (concat str v))
+	)
+      )
+    )
+  )
+
+(defun my-stock-tracker ()
+  "my stock tracker"
+  (my-stock-tracker-show-stock-info
+   my-stock-tracker--api-url
+   my-stock-tracker--list-of-stocks)
+  )
 
 
+(defun my-stock-tracker-run-with-timer ()
+  "run with timer"
+  (setq my-stock-tracker-timer
+	(run-with-timer 0 300
+			'my-stock-tracker
+			)
+	)
+  )
 
 
-
-(my-stock-tracker-show-stock-info
- my-stock-tracker--api-url
- my-stock-tracker--list-of-stocks)
-
+(defun my-stock-tracker-cancel-run-with-timer (timer)
+  ""
+  (cancel-timer timer)
+  )
 
 (setq my-stock-tracker-list-dates
       (lambda (h)
@@ -348,8 +408,18 @@
 ;;(funcall my-stock-tracker-list-dates (gethash "timestamp" json-main-data))
 
 
-
 ;; DEBUG
+
+
+(my-stock-tracker-show-stock-info
+ my-stock-tracker--api-url
+ my-stock-tracker--list-of-stocks)
+
+
+
+(setq my-stock-tracker-timer (my-stock-tracker-run-with-timer))
+(cancel-timer my-stock-tracker-timer)
+
 (setq json-list (my-stock-tracker-get-all-jsons my-stock-tracker--api-url my-stock-tracker--list-of-stocks))
 (setq json-data (car json-list))
 
@@ -357,17 +427,9 @@
 (my-stock-tracker-get-timestamps json-data)
 
 
-(setq jsontime (my-stock-tracker-get-timestamps json-data))
-(setq indopen  (my-stock-tracker-get-indicator  json-data "open"))
-(setq indclose (my-stock-tracker-get-indicator  json-data "close"))
-(setq indhigh  (my-stock-tracker-get-indicator  json-data "high"))
-(setq indlow   (my-stock-tracker-get-indicator  json-data "low"))
 
-(dotimes (i (length jsontime))
-  (let ((v (format "%s,%s,%s,%s,%s\n" (elt jsontime i) (elt indopen i) (elt indhigh i) (elt indclose i) (elt indclose i))))
-    (message v)
-    )
-  )
+(my-stock-tracker-make-gnuplot-data json-data)
+(my-stock-tracker-output-gnuplot-data json-data "tempfile")
 
 
 
